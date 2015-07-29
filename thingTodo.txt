@@ -1,0 +1,22 @@
+#Run Downsampling
+/dmp/resources/prod/tools/system/python/production/bin/python ~/workspace/NormalVsNormalAnalysis/RunDownSampling.py
+#Compile all HSmetrics Files for all fractions
+/dmp/resources/prod/tools/system/python/production/bin/python ~/workspace/NormalVsNormalAnalysis/CompileHSmetrics.py -b newbam.list -i /dmp/hot/shahr2/IMPACT/Test/NormalVsNormal/IMPACTv1-VAL-Set12A/with50bpIntervals/DownSample/ -o /dmp/hot/shahr2/IMPACT/Test/NormalVsNormal/IMPACTv1-VAL-Set12A/with50bpIntervals/DownSample/
+#Manually select the normals
+##1St Run : All N1 as Normal and N2 as Tumor
+##2ndRun : All N2 as Normal and N1 as Tumor
+##Fraction 0.20 for most cases when selecting normal except.
+###M-16-EB-N1(0.60),M-1661-3B-N1(0.30),M-1670-A6-N1(0.30),M-1684-B6-N1(0.10),M-1698-A9-N1(0.10)
+##Run the pipeline with this selection
+#Remove row starting with blanks
+sed '/^\s\s*\/ d' HiSeqValidationRun12A_AllSomaticMutIndel_withAlleleDepth_annovarAnnotated.txt > annovarAnnotated.txt
+#Run ~/workspace/NormalVsNormalAnalysis/AddManualAnnotationTags.py
+/dmp/resources/prod/tools/system/python/production/bin/python ~/workspace/NormalVsNormalAnalysis/AddManualAnnotationTags.py -i /dmp/hot/shahr2/IMPACT/Test/NormalVsNormal/IMPACTv1-VAL-Set12A/with50bpIntervals/MergeFiles/annovarAnnotated_processed.txt -o /dmp/hot/shahr2/IMPACT/Test/NormalVsNormal/IMPACTv1-VAL-Set12A/with50bpIntervals/MergeFiles/ 
+#Conctenate Files
+cat ../1stRun/AllSample_MergedResults.txt ../2ndRun/AllSample_MergedResults.txt > AllSample_MergedResults_All.txt
+#Remove Unwanted samples and rows starting with blanks
+sed '/^\(M-1620-C4\|M-1619-DF\|M-1748-C4\|\s\s*\)/ d' AllSample_MergedResults_All.txt > AllSample_MergedResults_OnlyNormals.txt
+#Separate SNPs & INDELS
+perl -lne 'chomp($_);if($.==1){print "$_"}else{@data = split("\t",$_);if(length($data[3]) == length($data[4])){print "$_";}}' AllSample_MergedResults_OnlyNormals.txt > AllSample_MergedResults_SNPs.txt
+perl -lne 'chomp($_);if($.==1){print "$_"}else{@data = split("\t",$_);if(length($data[3]) != length($data[4])){print "$_";}}' AllSample_MergedResults.txt > AllSample_MergedResults_Indels.txt 
+
